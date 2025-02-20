@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Method: String {
+public enum HTTPMethod: String {
     case GET, POST, PUT, DELETE
 }
 
@@ -9,7 +9,7 @@ public protocol Request {
     associatedtype Body: EncodableBody
 
     var path: [String] { get }
-    var method: Method { get }
+    var method: HTTPMethod { get }
 
     var headers: [String: String] { get }
     var params: Params { get }
