@@ -1,6 +1,6 @@
 import Foundation
 
-public enum APIError: LocalizedError {
+public enum HTTPAPIError: LocalizedError {
     case errorStatusCode(Int, String?, HTTPURLResponse)
 
     public var errorDescription: String? {
@@ -22,15 +22,19 @@ public enum APIError: LocalizedError {
     }
 }
 
-public protocol Authenticator: AnyObject {
-    func applyAuthorization(to request: inout URLRequest) throws
-    func refreshAuthorization() async throws
+public protocol HTTPAuthenticator: AnyObject, Sendable {
+    func applyAuthorization(to request: inout URLRequest) async throws
+    func refreshAuthorization(_ response: HTTPURLResponse) async throws
 }
 
-public final class Client {
-    public var defaultHeaders: [String: String] = [:]
-    public weak var authenticator: Authenticator?
+public final class HTTPClient: Sendable {
     public let baseURL: URL
+
+    @HTTPClientActor
+    private weak var authenticator: HTTPAuthenticator?
+
+    @HTTPClientActor
+    private var defaultHeaders: [String: String] = [:]
 
     private let session: URLSession
 
@@ -39,6 +43,18 @@ public final class Client {
 
         let configuration = URLSessionConfiguration.default
         session = URLSession(configuration: configuration)
+    }
+
+    public func setAuthenticator(_ authenticator: HTTPAuthenticator) {
+        Task { @HTTPClientActor in
+            self.authenticator = authenticator
+        }
+    }
+
+    public func setValue(_ value: String?, forHTTPHeaderField field: String) {
+        Task { @HTTPClientActor in
+            defaultHeaders[field] = value
+        }
     }
 
     public func sendRequest<R: Request>(_ request: R) async throws -> R.Response {
@@ -50,12 +66,16 @@ public final class Client {
         }
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401, let authenticator {
-                _ = try await authenticator.refreshAuthorization()
+            if httpResponse.statusCode == 401, let authenticator = await authenticator {
+                _ = try await authenticator.refreshAuthorization(httpResponse)
                 return try await sendRequest(request)
             }
 
-            throw APIError.errorStatusCode(httpResponse.statusCode, String(bytes: data, encoding: .utf8), httpResponse)
+            throw HTTPAPIError.errorStatusCode(
+                httpResponse.statusCode,
+                String(bytes: data, encoding: .utf8),
+                httpResponse
+            )
         }
 
         return try R.Response.decode(data: data, response: httpResponse)
@@ -74,7 +94,7 @@ public final class Client {
 
         var urlRequest = URLRequest(url: url)
 
-        for (header, value) in defaultHeaders {
+        for (header, value) in await defaultHeaders {
             urlRequest.addValue(value, forHTTPHeaderField: header)
         }
 
@@ -82,8 +102,8 @@ public final class Client {
             urlRequest.addValue(value, forHTTPHeaderField: header)
         }
 
-        if let authenticator, request.requiresAuthorization {
-            try authenticator.applyAuthorization(to: &urlRequest)
+        if let authenticator = await authenticator, request.requiresAuthorization {
+            try await authenticator.applyAuthorization(to: &urlRequest)
         }
 
         urlRequest.httpMethod = request.method.rawValue
