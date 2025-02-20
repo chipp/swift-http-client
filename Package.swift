@@ -7,9 +7,9 @@ let package = Package(
     name: "swift-http-client",
     platforms: [.macOS(.v12), .iOS(.v15)],
     products: [
-        .library(name: "HTTP", targets: ["HTTPClient"])
+        .library(name: "HTTP", targets: ["HTTP"])
     ],
     targets: [
-        .target(name: "HTTPClient")
+        .target(name: "HTTP")
     ]
 )
