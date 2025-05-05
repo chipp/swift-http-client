@@ -22,6 +22,13 @@ public extension JSONEncodableBody {
     }
 }
 
+extension Array: EncodableBody where Element: JSONEncodableBody {
+    public func encode(to urlRequest: inout URLRequest) throws {
+        urlRequest.httpBody = try Element.encoder.encode(self)
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
+}
+
 public struct NoBody: EncodableBody {
     public func encode(to _: inout URLRequest) throws {}
 }
