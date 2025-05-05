@@ -29,10 +29,6 @@ extension Array: EncodableBody where Element: JSONEncodableBody {
     }
 }
 
-public struct NoBody: EncodableBody {
-    public func encode(to _: inout URLRequest) throws {}
-}
-
 public struct URLEncodedBody: EncodableBody {
     private let params: [String: String]
     public init(params: [String: String]) {
