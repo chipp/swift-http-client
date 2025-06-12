@@ -102,13 +102,13 @@ public final class HTTPClient: Sendable {
             urlRequest.addValue(value, forHTTPHeaderField: header)
         }
 
-        if let authenticator = await authenticator, request.requiresAuthorization {
-            try await authenticator.applyAuthorization(to: &urlRequest)
-        }
-
         urlRequest.httpMethod = request.method.rawValue
         try request.params.add(to: &urlRequest)
         try request.body.encode(to: &urlRequest)
+
+        if let authenticator = await authenticator, request.requiresAuthorization {
+            try await authenticator.applyAuthorization(to: &urlRequest)
+        }
 
         return urlRequest
     }
