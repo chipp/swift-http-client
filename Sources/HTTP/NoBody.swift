@@ -1,10 +1,3 @@
-//
-//  NoBody.swift
-//  swift-http-client
-//
-//  Created by Vladimir Burdukov on 05/05/2025.
-//
-
 import Foundation
 
 public struct NoBody: EncodableBody, DecodableBody {

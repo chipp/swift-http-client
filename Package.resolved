@@ -1,0 +1,24 @@
+{
+  "originHash" : "25b9991933f9b858c20c1618538c88546981ee9cf6206729db662e7129fa7537",
+  "pins" : [
+    {
+      "identity" : "swiftformatplugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/chipp/SwiftFormatPlugin",
+      "state" : {
+        "revision" : "955a3d3d80f126645bc37bc7480cac4c0a1375a4",
+        "version" : "0.57.2"
+      }
+    },
+    {
+      "identity" : "swiftlintplugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/chipp/SwiftLintPlugin",
+      "state" : {
+        "revision" : "6597581035a092819ca72f8af2ce27f54503d280",
+        "version" : "0.62.2"
+      }
+    }
+  ],
+  "version" : 3
+}

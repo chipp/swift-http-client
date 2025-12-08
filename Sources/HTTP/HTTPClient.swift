@@ -2,11 +2,17 @@ import Foundation
 
 public enum HTTPAPIError: LocalizedError {
     case errorStatusCode(Int, String?, HTTPURLResponse)
+    case missingAuthorizationHandler
+    case missingCredentials
 
     public var errorDescription: String? {
         switch self {
         case let .errorStatusCode(statusCode, _, _):
             "HTTP Status Code: \(statusCode)"
+        case .missingAuthorizationHandler:
+            "Missing authorization handler"
+        case .missingCredentials:
+            "Missing credentials"
         }
     }
 
@@ -18,25 +24,38 @@ public enum HTTPAPIError: LocalizedError {
                 result += body
             }
             return result
+        case .missingAuthorizationHandler:
+            return "It's a developer error. Please contact the developer."
+        case .missingCredentials:
+            return "Missing or invalid credentials."
         }
     }
 }
 
-public protocol HTTPAuthenticator: AnyObject, Sendable {
-    func applyAuthorization(to request: inout URLRequest) async throws
-    func refreshAuthorization(_ response: HTTPURLResponse) async throws
+public protocol HTTPAuthorizationHandler {
+    func applyAuthorization(
+        isolation: isolated (any Actor)?,
+        to request: inout URLRequest
+    ) async throws
+
+    func refreshAuthorization(
+        isolation: isolated (any Actor)?,
+        _ response: HTTPURLResponse
+    ) async throws
 }
 
-public final class HTTPClient: Sendable {
+public protocol HTTPRequestInterceptor: Sendable {
+    func interceptRequest(_ request: some Request, urlRequest: inout URLRequest) async throws
+}
+
+public actor HTTPClient {
     public let baseURL: URL
 
-    @HTTPClientActor
-    private weak var authenticator: HTTPAuthenticator?
-
-    @HTTPClientActor
-    private var defaultHeaders: [String: String] = [:]
-
     private let session: URLSession
+
+    var authorizationHandler: HTTPAuthorizationHandler?
+    var interceptors: [HTTPRequestInterceptor] = []
+    var defaultHeaders: [String: String] = [:]
 
     public init(baseURL: URL) {
         self.baseURL = baseURL
@@ -45,16 +64,16 @@ public final class HTTPClient: Sendable {
         session = URLSession(configuration: configuration)
     }
 
-    public func setAuthenticator(_ authenticator: HTTPAuthenticator) {
-        Task { @HTTPClientActor in
-            self.authenticator = authenticator
-        }
+    public func setAuthorizationHandler(_ authorizationHandler: sending HTTPAuthorizationHandler?) {
+        self.authorizationHandler = authorizationHandler
+    }
+
+    public func setInterceptors(_ interceptors: consuming sending [HTTPRequestInterceptor]) {
+        self.interceptors = interceptors
     }
 
     public func setValue(_ value: String?, forHTTPHeaderField field: String) {
-        Task { @HTTPClientActor in
-            defaultHeaders[field] = value
-        }
+        defaultHeaders[field] = value
     }
 
     public func sendRequest<R: Request>(_ request: R) async throws -> R.Response {
@@ -66,8 +85,8 @@ public final class HTTPClient: Sendable {
         }
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401, let authenticator = await authenticator {
-                _ = try await authenticator.refreshAuthorization(httpResponse)
+            if httpResponse.statusCode == 401 {
+                _ = try await refreshAuthorization(httpResponse)
                 return try await sendRequest(request)
             }
 
@@ -94,7 +113,7 @@ public final class HTTPClient: Sendable {
 
         var urlRequest = URLRequest(url: url)
 
-        for (header, value) in await defaultHeaders {
+        for (header, value) in defaultHeaders {
             urlRequest.addValue(value, forHTTPHeaderField: header)
         }
 
@@ -106,10 +125,30 @@ public final class HTTPClient: Sendable {
         try request.params.add(to: &urlRequest)
         try request.body.encode(to: &urlRequest)
 
-        if let authenticator = await authenticator, request.requiresAuthorization {
-            try await authenticator.applyAuthorization(to: &urlRequest)
+        for interceptor in interceptors {
+            try await interceptor.interceptRequest(request, urlRequest: &urlRequest)
+        }
+
+        if request.requiresAuthorization {
+            try await applyAuthorization(to: &urlRequest)
         }
 
         return urlRequest
+    }
+
+    private func applyAuthorization(to request: inout URLRequest) async throws {
+        guard let authorizationHandler else {
+            throw HTTPAPIError.missingAuthorizationHandler
+        }
+
+        try await authorizationHandler.applyAuthorization(isolation: #isolation, to: &request)
+    }
+
+    private func refreshAuthorization(_ response: HTTPURLResponse) async throws {
+        guard let authorizationHandler else {
+            throw HTTPAPIError.missingAuthorizationHandler
+        }
+
+        try await authorizationHandler.refreshAuthorization(isolation: #isolation, response)
     }
 }

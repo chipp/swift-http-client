@@ -1,10 +1,10 @@
 import Foundation
 
-public enum HTTPMethod: String {
+public enum HTTPMethod: String, Sendable {
     case GET, POST, PUT, DELETE
 }
 
-public protocol Request {
+public protocol Request: Sendable {
     associatedtype Response: DecodableBody
     associatedtype Body: EncodableBody
 
@@ -22,5 +22,5 @@ public extension Request {
     var headers: [String: String] { [:] }
     var params: Params { .none }
     var body: NoBody { NoBody() }
-    var requiresAuthorization: Bool { true }
+    var requiresAuthorization: Bool { false }
 }

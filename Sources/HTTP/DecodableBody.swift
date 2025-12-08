@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol DecodableBody {
+public protocol DecodableBody: Sendable {
     static func decode(data: Data, response: HTTPURLResponse) throws -> Self
 }
 

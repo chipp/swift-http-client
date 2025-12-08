@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol EncodableBody {
+public protocol EncodableBody: Sendable {
     func encode(to urlRequest: inout URLRequest) throws
 }
 
@@ -30,7 +30,7 @@ extension Array: EncodableBody where Element: JSONEncodableBody {
 }
 
 public struct URLEncodedBody: EncodableBody {
-    private let params: [String: String]
+    public let params: [String: String]
     public init(params: [String: String]) {
         self.params = params
     }
@@ -64,7 +64,7 @@ public struct URLEncodedBody: EncodableBody {
 }
 
 public struct MultipartFormDataBody: EncodableBody {
-    public struct File {
+    public struct File: Sendable {
         public let data: Data
         public let contentType: String
         public let filename: String
@@ -99,7 +99,7 @@ public struct MultipartFormDataBody: EncodableBody {
             data.append(contentsOf: "Content-Disposition: form-data; name=\"\(key)\"; filename=\"\(file.filename)\"\r\n".utf8)
             data.append(contentsOf: "Content-Type: \(file.contentType)\r\n\r\n".utf8)
             data.append(file.data)
-            data.append(contentsOf: [0x0D, 0x0A])
+            data.append(contentsOf: "\r\n".utf8)
         }
 
         data.append(contentsOf: "--\(boundary)--\r\n".utf8)
