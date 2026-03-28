@@ -19,8 +19,19 @@ public protocol Request: Sendable {
 }
 
 public extension Request {
-    var headers: [String: String] { [:] }
-    var params: Params { .none }
-    var body: NoBody { NoBody() }
-    var requiresAuthorization: Bool { false }
+    var headers: [String: String] {
+        [:]
+    }
+
+    var params: Params {
+        .none
+    }
+
+    var body: NoBody {
+        NoBody()
+    }
+
+    var requiresAuthorization: Bool {
+        false
+    }
 }

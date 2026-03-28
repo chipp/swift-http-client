@@ -49,7 +49,7 @@ public struct URLEncodedBody: EncodableBody {
         for (key, value) in params {
             queryItems.append((
                 key,
-                value.addingPercentEncoding(withAllowedCharacters: Self.charset) ?? value
+                value.addingPercentEncoding(withAllowedCharacters: Self.charset) ?? value,
             ))
         }
 

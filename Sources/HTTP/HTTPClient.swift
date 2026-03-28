@@ -35,12 +35,12 @@ public enum HTTPAPIError: LocalizedError {
 public protocol HTTPAuthorizationHandler {
     func applyAuthorization(
         isolation: isolated (any Actor)?,
-        to request: inout URLRequest
+        to request: inout URLRequest,
     ) async throws
 
     func refreshAuthorization(
         isolation: isolated (any Actor)?,
-        _ response: HTTPURLResponse
+        _ response: HTTPURLResponse,
     ) async throws
 }
 
@@ -68,7 +68,7 @@ public actor HTTPClient {
         self.authorizationHandler = authorizationHandler
     }
 
-    public func setInterceptors(_ interceptors: consuming sending [HTTPRequestInterceptor]) {
+    public func setInterceptors(_ interceptors: consuming sending[HTTPRequestInterceptor]) {
         self.interceptors = interceptors
     }
 
@@ -93,7 +93,7 @@ public actor HTTPClient {
             throw HTTPAPIError.errorStatusCode(
                 httpResponse.statusCode,
                 String(bytes: data, encoding: .utf8),
-                httpResponse
+                httpResponse,
             )
         }
 
