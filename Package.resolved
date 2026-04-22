@@ -1,13 +1,13 @@
 {
-  "originHash" : "25b9991933f9b858c20c1618538c88546981ee9cf6206729db662e7129fa7537",
+  "originHash" : "10b920c1b10bfdbf7906c62a4bfb82cf0ae16d76ca319cd10a9ea2f01991e55f",
   "pins" : [
     {
       "identity" : "swiftformatplugin",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/chipp/SwiftFormatPlugin",
       "state" : {
-        "revision" : "d0faf21762c1ac2e9a06d5d65993a3fa8007ea4f",
-        "version" : "0.60.1"
+        "revision" : "3b81061a7c988ede7abdebceae3b9632857dbcda",
+        "version" : "0.61.0"
       }
     },
     {

@@ -58,10 +58,13 @@ public actor HTTPClient {
     var defaultHeaders: [String: String] = [:]
 
     public init(baseURL: URL) {
-        self.baseURL = baseURL
+        let session = URLSession(configuration: .default)
+        self.init(baseURL: baseURL, session: session)
+    }
 
-        let configuration = URLSessionConfiguration.default
-        session = URLSession(configuration: configuration)
+    init(baseURL: URL, session: URLSession) {
+        self.baseURL = baseURL
+        self.session = session
     }
 
     public func setAuthorizationHandler(_ authorizationHandler: sending HTTPAuthorizationHandler?) {
@@ -77,6 +80,10 @@ public actor HTTPClient {
     }
 
     public func sendRequest<R: Request>(_ request: R) async throws -> R.Response {
+        try await sendRequest(request, retryCount: 0)
+    }
+
+    private func sendRequest<R: Request>(_ request: R, retryCount: Int) async throws -> R.Response {
         let urlRequest = try await createURLRequest(request)
         let (data, response) = try await requestData(urlRequest)
 
@@ -85,9 +92,9 @@ public actor HTTPClient {
         }
 
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401 {
+            if httpResponse.statusCode == 401, request.requiresAuthorization, retryCount < 1 {
                 _ = try await refreshAuthorization(httpResponse)
-                return try await sendRequest(request)
+                return try await sendRequest(request, retryCount: retryCount + 1)
             }
 
             throw HTTPAPIError.errorStatusCode(

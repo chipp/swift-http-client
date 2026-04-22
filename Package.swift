@@ -17,6 +17,7 @@ let package = Package(
         .target(name: "HTTP", plugins: [
             .plugin(name: "SwiftFormat", package: "SwiftFormatPlugin"),
             .plugin(name: "SwiftLint", package: "SwiftLintPlugin")
-        ])
+        ]),
+        .testTarget(name: "HTTPTests", dependencies: ["HTTP"])
     ]
 )
